@@ -209,6 +209,7 @@ class GooglePlaces(object):
     GEOCODE_API_URL = BASE_URL + '/geocode/json?'
     RADAR_SEARCH_API_URL = PLACE_URL + '/radarsearch/json?'
     NEARBY_SEARCH_API_URL = PLACE_URL + '/nearbysearch/json?'
+    FIND_PLACES_API_URL = PLACE_URL + '/findplacefromtext/json?'
     TEXT_SEARCH_API_URL = PLACE_URL + '/textsearch/json?'
     AUTOCOMPLETE_API_URL = PLACE_URL + '/autocomplete/json?'
     DETAIL_API_URL = PLACE_URL + '/details/json?'
@@ -311,6 +312,43 @@ class GooglePlaces(object):
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
+    def find_places(self, query=None, inputtype='textquery', language=lang.ENGLISH, 
+                    types=[], locationbias = 'rectangle:6.4626999,68.1097|35.513327,97.3953586999', 
+                    fields = ["formatted_address","geometry","name","place_id","types"]):
+        """Perform a find places search using the Google Places API.
+
+        https://developers.google.com/places/web-service/search#FindPlaceRequests
+
+        keyword arguments:
+        query    -- The text string on which to search, for example:
+                    "Restaurant in New York".
+        inputtype-- The type of input. Can be 'textquery' or 'phonenumber'
+                    (default 'textquery')
+        language -- Language code
+        fields   -- Fields specifying the type of place data to return
+        locationbias -- Rectangular biasing (default values are for India)   
+        types    -- An optional list of types, restricting the results to
+                    Places (default []). If there is only one item the request
+                    will be send as type param.
+        """
+        self._request_params = {'input': query}
+        self._request_params['inputtype'] = inputtype
+        self._request_params['fields'] = (",").join(fields)
+        if types:
+            if len(types) == 1:
+                self._request_params['type'] = types[0]
+            elif len(types) > 1:
+                self._request_params['types'] = '|'.join(types)
+        if language is not None:
+            self._request_params['language'] = language
+        if locationbias is not None:
+            self._request_params['locationbias'] = locationbias
+        self._add_required_param_keys()
+        url, places_response = _fetch_remote_json(
+                GooglePlaces.FIND_PLACES_API_URL, self._request_params)
+        _validate_response(url, places_response)
+        return GooglePlacesSearchResultFindPlaces(self, places_response)
+
     def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
                     radius=3200, type=None, types=[], location=None, pagetoken=None,
                     timeout=None):
@@ -318,7 +356,7 @@ class GooglePlaces(object):
 
         Only the one of the query or pagetoken kwargs are required, the rest of the 
         keyword arguments are optional.
-
+        
         keyword arguments:
         lat_lng  -- A dict containing the following keys: lat, lng
                     (default None)
@@ -787,6 +825,58 @@ class Prediction(object):
         """ Return a string representation with description. """
         return '<{} description="{}">'.format(self.__class__.__name__, self.description)
 
+class GooglePlacesSearchResultFindPlaces(object):
+    """
+    Wrapper around the Google Places API query JSON response.
+    """
+
+    def __init__(self, query_instance, response):
+        self._response = response
+        self._places = []
+        for place in response['candidates']:
+            self._places.append(Place(query_instance, place))
+        self._html_attributions = response.get('html_attributions', [])
+        self._next_page_token = response.get('next_page_token', [])
+
+    @property
+    def raw_response(self):
+        """
+        Returns the raw JSON response returned by the Places API.
+        """
+        return self._response
+
+    @property
+    def places(self):
+        return self._places
+
+    @property
+    def html_attributions(self):
+        """Returns the HTML attributions for the specified response.
+
+        Any returned HTML attributions MUST be displayed as-is, in accordance
+        with the requirements as found in the documentation. Please see the
+        module comments for links to the relevant url.
+        """
+        return self._html_attributions
+
+    @property
+    def next_page_token(self):
+        """Returns the next page token(next_page_token)."""
+        return self._next_page_token
+
+    @property
+    def has_attributions(self):
+        """Returns a flag denoting if the response had any html attributions."""
+        return len(self.html_attributions) > 0
+
+    @property
+    def has_next_page_token(self):
+        """Returns a flag denoting if the response had a next page token."""
+        return len(self.next_page_token) > 0
+
+    def __repr__(self):
+        """ Return a string representation stating the number of results."""
+        return '<{} with {} result(s)>'.format(self.__class__.__name__, len(self.places))
 
 class GooglePlacesSearchResult(object):
     """
