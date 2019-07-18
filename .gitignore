@@ -5,3 +5,4 @@
 MANIFEST
 dist/
 .vscode/
+.mypy_cache/
