@@ -49,7 +49,7 @@ class cached_property(object):
         return result
 
 
-def _fetch_remote(service_url, params=None, use_http_post=False):
+def _fetch_remote(service_url, params=None, use_http_post=False, timeout=None):
     if not params:
         params = {}
 
@@ -68,20 +68,20 @@ def _fetch_remote(service_url, params=None, use_http_post=False):
     else:
         request_url = service_url
         request = urllib.request.Request(service_url, data=encoded_data)
-    return (request_url, urllib.request.urlopen(request))
+    return (request_url, urllib.request.urlopen(request, timeout=timeout))
 
-def _fetch_remote_json(service_url, params=None, use_http_post=False):
+def _fetch_remote_json(service_url, params=None, use_http_post=False, timeout=None):
     """Retrieves a JSON object from a URL."""
     if not params:
         params = {}
 
-    request_url, response = _fetch_remote(service_url, params, use_http_post)
+    request_url, response = _fetch_remote(service_url, params, use_http_post, timeout=timeout)
     if six.PY3:
         str_response = response.read().decode('utf-8')
         return (request_url, json.loads(str_response, parse_float=Decimal))
     return (request_url, json.load(response, parse_float=Decimal))
 
-def _fetch_remote_file(service_url, params=None, use_http_post=False):
+def _fetch_remote_file(service_url, params=None, use_http_post=False, timeout=None):
     """Retrieves a file from a URL.
 
     Returns a tuple (mimetype, filename, data)
@@ -89,7 +89,7 @@ def _fetch_remote_file(service_url, params=None, use_http_post=False):
     if not params:
         params = {}
 
-    request_url, response = _fetch_remote(service_url, params, use_http_post)
+    request_url, response = _fetch_remote(service_url, params, use_http_post, timeout=timeout)
     dummy, params = cgi.parse_header(
             response.headers.get('Content-Disposition', ''))
     fn = params['filename']
@@ -97,7 +97,7 @@ def _fetch_remote_file(service_url, params=None, use_http_post=False):
     return (response.headers.get('content-type'),
             fn, response.read(), response.geturl())
 
-def geocode_location(location, sensor=False, api_key=None):
+def geocode_location(location, sensor=False, api_key=None, timeout=None):
     """Converts a human-readable location to lat-lng.
 
     Returns a dict with lat and lng keys.
@@ -106,7 +106,8 @@ def geocode_location(location, sensor=False, api_key=None):
     location -- A human-readable location, e.g 'London, England'
     sensor   -- Boolean flag denoting if the location came from a device using
                 its' location sensor (default False)
-    api_key  -- A valid Google Places API key. 
+    api_key  -- A valid Google Places API key.
+    timeout  -- Timeout in seconds.
 
     raises:
     GooglePlacesError -- if the geocoder fails to find a location.
@@ -115,7 +116,7 @@ def geocode_location(location, sensor=False, api_key=None):
     if api_key is not None:
         params['key'] = api_key
     url, geo_response = _fetch_remote_json(
-            GooglePlaces.GEOCODE_API_URL, params)
+            GooglePlaces.GEOCODE_API_URL, params, timeout=timeout)
     _validate_response(url, geo_response)
     if geo_response['status'] == GooglePlaces.RESPONSE_STATUS_ZERO_RESULTS:
         error_detail = ('Lat/Lng for location \'%s\' can\'t be determined.' %
@@ -124,22 +125,24 @@ def geocode_location(location, sensor=False, api_key=None):
     return geo_response['results'][0]['geometry']['location']
 
 def _get_place_details(place_id, api_key, sensor=False,
-                       language=lang.ENGLISH):
+                       language=lang.ENGLISH, timeout=None):
     """Gets a detailed place response.
 
     keyword arguments:
     place_id -- The unique identifier for the required place.
+    timeout  -- Timeout in seconds
     """
     url, detail_response = _fetch_remote_json(GooglePlaces.DETAIL_API_URL,
                                               {'placeid': place_id,
                                                'sensor': str(sensor).lower(),
                                                'key': api_key,
-                                               'language': language})
+                                               'language': language},
+                                              timeout=timeout)
     _validate_response(url, detail_response)
     return detail_response['result']
 
 def _get_place_photo(photoreference, api_key, maxheight=None, maxwidth=None,
-                       sensor=False):
+                       sensor=False, timeout=None):
     """Gets a place's photo by reference.
     See detailed documentation at https://developers.google.com/places/documentation/photos
 
@@ -149,6 +152,7 @@ def _get_place_photo(photoreference, api_key, maxheight=None, maxwidth=None,
     Keyword arguments:
     maxheight -- The maximum desired photo height in pixels
     maxwidth -- The maximum desired photo width in pixels
+    timeout  -- Timeout in seconds
 
     You must specify one of this keyword arguments. Acceptable value is an
     integer between 1 and 1600.
@@ -164,7 +168,7 @@ def _get_place_photo(photoreference, api_key, maxheight=None, maxwidth=None,
     if maxwidth:
         params['maxwidth'] = maxwidth
 
-    return _fetch_remote_file(GooglePlaces.PHOTO_API_URL, params)
+    return _fetch_remote_file(GooglePlaces.PHOTO_API_URL, params, timeout=timeout)
 
 def _validate_response(url, response):
     """Validates that the response from Google was successful."""
@@ -231,8 +235,8 @@ class GooglePlaces(object):
         return self.nearby_search(**kwargs)
 
     def nearby_search(self, language=lang.ENGLISH, keyword=None, location=None,
-               lat_lng=None, name=None, radius=3200, rankby=ranking.PROMINENCE,
-               sensor=False, type=None, types=[], pagetoken=None):
+                      lat_lng=None, name=None, radius=3200, rankby=ranking.PROMINENCE,
+                      sensor=False, type=None, types=[], pagetoken=None, timeout=None):
         """Perform a nearby search using the Google Places API.
 
         One of either location, lat_lng or pagetoken are required, the rest of 
@@ -266,6 +270,7 @@ class GooglePlaces(object):
                     20 results from a previously run search. Setting this parameter 
                     will execute a search with the same parameters used previously. 
                     (default None)
+        timeout  -- Timeout in seconds.
         """
         if location is None and lat_lng is None and pagetoken is None:
             raise ValueError('One of location, lat_lng or pagetoken must be passed in.')
@@ -279,7 +284,7 @@ class GooglePlaces(object):
         self._sensor = sensor
         radius = (radius if radius <= GooglePlaces.MAXIMUM_SEARCH_RADIUS
                   else GooglePlaces.MAXIMUM_SEARCH_RADIUS)
-        lat_lng_str = self._generate_lat_lng_string(lat_lng, location)
+        lat_lng_str = self._generate_lat_lng_string(lat_lng, location, timeout=timeout)
         self._request_params = {'location': lat_lng_str}
         if rankby == 'prominence':
             self._request_params['radius'] = radius
@@ -302,7 +307,8 @@ class GooglePlaces(object):
             self._request_params['language'] = language
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.NEARBY_SEARCH_API_URL, self._request_params)
+            GooglePlaces.NEARBY_SEARCH_API_URL, self._request_params,
+            timeout=timeout)
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
@@ -347,7 +353,8 @@ class GooglePlaces(object):
         return GooglePlacesSearchResultFindPlaces(self, places_response)
 
     def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
-                    radius=3200, type=None, types=[], location=None, pagetoken=None):
+                    radius=3200, type=None, types=[], location=None, pagetoken=None,
+                    timeout=None):
         """Perform a text search using the Google Places API.
 
         Only the one of the query or pagetoken kwargs are required, the rest of the 
@@ -371,10 +378,11 @@ class GooglePlaces(object):
         types    -- An optional list of types, restricting the results to
                     Places (default []). If there is only one item the request
                     will be send as type param.
+        timeout  -- Timeout in seconds
         """
         self._request_params = {'query': query}
         if lat_lng is not None or location is not None:
-            lat_lng_str = self._generate_lat_lng_string(lat_lng, location)
+            lat_lng_str = self._generate_lat_lng_string(lat_lng, location, timeout=timeout)
             self._request_params['location'] = lat_lng_str
         self._request_params['radius'] = radius
         if type:
@@ -390,12 +398,13 @@ class GooglePlaces(object):
             self._request_params['pagetoken'] = pagetoken
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.TEXT_SEARCH_API_URL, self._request_params)
+            GooglePlaces.TEXT_SEARCH_API_URL, self._request_params,
+            timeout=timeout)
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
     def autocomplete(self, input, lat_lng=None, location=None, radius=3200,
-                     language=lang.ENGLISH, types=None, components=[]):
+                     language=lang.ENGLISH, types=None, components=[], timeout=None):
         """
         Perform an autocomplete search using the Google Places API.
 
@@ -422,10 +431,11 @@ class GooglePlaces(object):
                     more tuples of:
                     * country: matches a country name or a two letter ISO 3166-1 country code.
                     eg: [('country','US')]
+        timeout  -- Timeout in seconds
         """
         self._request_params = {'input': input}
         if lat_lng is not None or location is not None:
-            lat_lng_str = self._generate_lat_lng_string(lat_lng, location)
+            lat_lng_str = self._generate_lat_lng_string(lat_lng, location, timeout=timeout)
             self._request_params['location'] = lat_lng_str
         self._request_params['radius'] = radius
         if types:
@@ -437,13 +447,14 @@ class GooglePlaces(object):
             self._request_params['language'] = language
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.AUTOCOMPLETE_API_URL, self._request_params)
+            GooglePlaces.AUTOCOMPLETE_API_URL, self._request_params,
+            timeout=timeout)
         _validate_response(url, places_response)
         return GoogleAutocompleteSearchResult(self, places_response)
 
     def radar_search(self, sensor=False, keyword=None, name=None,
                      language=lang.ENGLISH, lat_lng=None, opennow=False,
-                     radius=3200, type=None, types=[], location=None):
+                     radius=3200, type=None, types=[], location=None, timeout=None):
         """Perform a radar search using the Google Places API.
 
         One of lat_lng or location are required, the rest of the keyword
@@ -471,6 +482,7 @@ class GooglePlaces(object):
         types    -- An optional list of types, restricting the results to
                     Places (default []). If there is only one item the request
                     will be send as type param
+        timeout  -- Timeout in seconds
         """
         if keyword is None and name is None and len(types) is 0:
             raise ValueError('One of keyword, name or types must be supplied.')
@@ -486,7 +498,7 @@ class GooglePlaces(object):
         self._request_params = {'radius': radius}
         self._sensor = sensor
         self._request_params['location'] = self._generate_lat_lng_string(
-                lat_lng, location)
+                lat_lng, location, timeout=timeout)
         if keyword is not None:
             self._request_params['keyword'] = keyword
         if name is not None:
@@ -504,11 +516,12 @@ class GooglePlaces(object):
             self._request_params['opennow'] = 'true'
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.RADAR_SEARCH_API_URL, self._request_params)
+            GooglePlaces.RADAR_SEARCH_API_URL, self._request_params,
+            timeout=timeout)
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
-    def checkin(self, place_id, sensor=False):
+    def checkin(self, place_id, sensor=False, timeout=None):
         """Checks in a user to a place.
 
         keyword arguments:
@@ -518,11 +531,12 @@ class GooglePlaces(object):
         """
         data = {'placeid': place_id}
         url, checkin_response = _fetch_remote_json(
-                GooglePlaces.CHECKIN_API_URL % (str(sensor).lower(),
-                        self.api_key), json.dumps(data), use_http_post=True)
+            GooglePlaces.CHECKIN_API_URL % (str(sensor).lower(), self.api_key),
+            json.dumps(data), use_http_post=True, timeout=timeout)
         _validate_response(url, checkin_response)
 
-    def get_place(self, place_id, sensor=False, language=lang.ENGLISH):
+    def get_place(self, place_id, sensor=False, language=lang.ENGLISH,
+                  timeout=None):
         """Gets a detailed place object.
 
         keyword arguments:
@@ -531,9 +545,10 @@ class GooglePlaces(object):
                      device using its' location sensor (default False).
         language -- The language code, indicating in which language the
                     results should be returned, if possible. (default lang.ENGLISH)
+        timeout  -- Timeout in seconds
         """
-        place_details = _get_place_details(place_id,
-                self.api_key, sensor, language=language)
+        place_details = _get_place_details(place_id, self.api_key, sensor,
+                                           language=language, timeout=timeout)
         return Place(self, place_details)
 
     def add_place(self, **kwargs):
@@ -556,6 +571,7 @@ class GooglePlaces(object):
                        (defaults 'en').
         sensor      -- Boolean flag denoting if the location came from a device
                        using its location sensor (default False).
+        timeout     -- Timeout in seconds
         """
         required_kwargs = {'name': [str], 'lat_lng': [dict],
                            'accuracy': [int], 'types': [str, list]}
@@ -592,6 +608,7 @@ class GooglePlaces(object):
                        if kwargs.get('sensor') is not None else
                        False)
 
+        timeout = kwargs.get("timeout")
         # At some point Google might support multiple types, so this supports
         # strings and lists.
         if isinstance(kwargs['types'], str):
@@ -599,13 +616,13 @@ class GooglePlaces(object):
         else:
             request_params['types'] = kwargs['types']
         url, add_response = _fetch_remote_json(
-                GooglePlaces.ADD_API_URL % (str(sensor).lower(),
-                self.api_key), json.dumps(request_params), use_http_post=True)
+            GooglePlaces.ADD_API_URL % (str(sensor).lower(), self.api_key),
+            json.dumps(request_params), use_http_post=True, timeout=timeout)
         _validate_response(url, add_response)
         return {'place_id': add_response['place_id'],
                 'id': add_response['id']}
 
-    def delete_place(self, place_id, sensor=False):
+    def delete_place(self, place_id, sensor=False, timeout=None):
         """Deletes a place from the Google Places database.
 
         keyword arguments:
@@ -613,22 +630,23 @@ class GooglePlaces(object):
                       Place, returned from a Place Search request.
         sensor     -- Boolean flag denoting if the location came from a device
                       using its location sensor (default False).
+        timeout    -- Timeout in seconds
         """
 
         request_params = {'place_id': place_id}
         url, delete_response = _fetch_remote_json(
-                GooglePlaces.DELETE_API_URL % (str(sensor).lower(),
-                self.api_key), json.dumps(request_params), use_http_post=True)
+            GooglePlaces.DELETE_API_URL % (str(sensor).lower(), self.api_key),
+            json.dumps(request_params), use_http_post=True, timeout=timeout)
         _validate_response(url, delete_response)
 
     def _add_required_param_keys(self):
         self._request_params['key'] = self.api_key
         self._request_params['sensor'] = str(self.sensor).lower()
 
-    def _generate_lat_lng_string(self, lat_lng, location):
+    def _generate_lat_lng_string(self, lat_lng, location, timeout=None):
         try:
             return '%(lat)s,%(lng)s' % (lat_lng if lat_lng is not None
-                    else geocode_location(location=location, api_key=self.api_key))
+                    else geocode_location(location=location, api_key=self.api_key, timeout=timeout))
         except GooglePlacesError as e:
             raise ValueError(
                 'lat_lng must be a dict with the keys, \'lat\' and \'lng\'. Cause: %s' % str(e))
@@ -779,7 +797,7 @@ class Prediction(object):
         self._validate_status()
         return self._place
 
-    def get_details(self, language=None):
+    def get_details(self, language=None, timeout=None):
         """
         Retrieves full information on the place matching the place_id.
 
@@ -792,8 +810,9 @@ class Prediction(object):
                 except KeyError:
                     language = lang.ENGLISH
             place = _get_place_details(
-                    self.place_id, self._query_instance.api_key,
-                    self._query_instance.sensor, language=language)
+                self.place_id, self._query_instance.api_key,
+                self._query_instance.sensor, language=language,
+                timeout=timeout)
             self._place = Place(self._query_instance, place)
 
     def _validate_status(self):
@@ -1096,12 +1115,13 @@ class Place(object):
         return (False if self._details is None else
                 len(self.html_attributions) > 0)
 
-    def checkin(self):
+    def checkin(self, timeout=None):
         """Checks in an anonymous user in."""
         self._query_instance.checkin(self.place_id,
-                                     self._query_instance.sensor)
+                                     self._query_instance.sensor,
+                                     timeout=timeout)
 
-    def get_details(self, language=None):
+    def get_details(self, language=None, timeout=None):
         """Retrieves full information on the place matching the place_id.
 
         Further attributes will be made available on the instance once this
@@ -1112,6 +1132,7 @@ class Place(object):
                     results should be returned, if possible. This value defaults
                     to the language that was used to generate the
                     GooglePlacesSearchResult instance.
+        timeout  -- Timeout in seconds
         """
         if self._details is None:
             if language is None:
@@ -1120,8 +1141,9 @@ class Place(object):
                 except KeyError:
                     language = lang.ENGLISH
             self._details = _get_place_details(
-                    self.place_id, self._query_instance.api_key,
-                    self._query_instance.sensor, language=language)
+                self.place_id, self._query_instance.api_key,
+                self._query_instance.sensor, language=language,
+                timeout=timeout)
 
     @cached_property
     def photos(self):
@@ -1153,7 +1175,7 @@ class Photo(object):
         self.html_attributions = attrs.get('html_attributions')
         self.photo_reference = attrs.get('photo_reference')
 
-    def get(self, maxheight=None, maxwidth=None, sensor=False):
+    def get(self, maxheight=None, maxwidth=None, sensor=False, timeout=None):
         """Fetch photo from API."""
         if not maxheight and not maxwidth:
             raise GooglePlacesError('You must specify maxheight or maxwidth!')
@@ -1161,6 +1183,6 @@ class Photo(object):
         result = _get_place_photo(self.photo_reference,
                                   self._query_instance.api_key,
                                   maxheight=maxheight, maxwidth=maxwidth,
-                                  sensor=sensor)
+                                  sensor=sensor, timeout=timeout)
 
         self.mimetype, self.filename, self.data, self.url = result

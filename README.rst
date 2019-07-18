@@ -7,6 +7,16 @@ python-google-places
 Google Places API.
 
 
+
+
+Note
+-----
+
+This repo is an extension of `slimkrazy/python-google-places <https://github.com/slimkrazy/python-google-places/zipball/master>`_
+and contains the following extra feature:
+
++ Timeouts
+
 Installation
 -----------------
 
