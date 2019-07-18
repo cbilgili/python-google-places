@@ -16,6 +16,7 @@ This repo is an extension of `slimkrazy/python-google-places <https://github.com
 and contains the following extra feature:
 
 + Timeouts
++ Find Place requests
 
 Installation
 -----------------

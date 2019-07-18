@@ -313,7 +313,7 @@ class GooglePlaces(object):
         return GooglePlacesSearchResult(self, places_response)
 
     def find_places(self, query=None, inputtype='textquery', language=lang.ENGLISH, 
-                    types=[], locationbias = 'rectangle:6.4626999,68.1097|35.513327,97.3953586999', 
+                    types=[], locationbias = None, 
                     fields = ["formatted_address","geometry","name","place_id","types"]):
         """Perform a find places search using the Google Places API.
 
@@ -326,7 +326,10 @@ class GooglePlaces(object):
                     (default 'textquery')
         language -- Language code
         fields   -- Fields specifying the type of place data to return
-        locationbias -- Rectangular biasing (default values are for India)   
+        locationbias -- location biasing. For rectangular biasing, the format
+                        used should be 'rectangle:south,west|north,east' 
+                        (Ex. for India, rectangular bias is 
+                        'rectangle:6.4626999,68.1097|35.513327,97.3953586999')   
         types    -- An optional list of types, restricting the results to
                     Places (default []). If there is only one item the request
                     will be send as type param.
