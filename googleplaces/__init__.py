@@ -205,7 +205,8 @@ class GooglePlaces(object):
     GEOCODE_API_URL = BASE_URL + '/geocode/json?'
     RADAR_SEARCH_API_URL = PLACE_URL + '/radarsearch/json?'
     NEARBY_SEARCH_API_URL = PLACE_URL + '/nearbysearch/json?'
-    TEXT_SEARCH_API_URL = PLACE_URL + '/findplacefromtext/json?'
+    FIND_PLACES_API_URL = PLACE_URL + '/findplacefromtext/json?'
+    TEXT_SEARCH_API_URL = PLACE_URL + '/textsearch/json?'
     AUTOCOMPLETE_API_URL = PLACE_URL + '/autocomplete/json?'
     DETAIL_API_URL = PLACE_URL + '/details/json?'
     CHECKIN_API_URL = PLACE_URL + '/check-in/json?sensor=%s&key=%s'
@@ -305,55 +306,40 @@ class GooglePlaces(object):
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
-    def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
-                    radius=None, type=None, types=[], location=None, pagetoken=None):
-        """Perform a text search using the Google Places API.
+    def find_places(self, query=None, inputtype='textquery', language=lang.ENGLISH, 
+                    types=[], locationbias = 'rectangle:6.4626999,68.1097|35.513327,97.3953586999', 
+                    fields = ["formatted_address","geometry","name","place_id","types"]):
+        """Perform a find places search using the Google Places API.
 
-        Only the one of the query or pagetoken kwargs are required, the rest of the 
-        keyword arguments are optional.
+        https://developers.google.com/places/web-service/search#FindPlaceRequests
 
         keyword arguments:
-        lat_lng  -- A dict containing the following keys: lat, lng
-                    (default None)
-        location -- A human readable location, e.g 'London, England'
-                    (default None)
-        pagetoken-- Optional parameter to force the search result to return the next
-                    20 results from a previously run search. Setting this parameter 
-                    will execute a search with the same parameters used previously. 
-                    (default None)
-        radius   -- The radius (in meters) around the location/lat_lng to
-                    restrict the search to. The maximum is 50000 meters.
-                    (default 3200)
         query    -- The text string on which to search, for example:
                     "Restaurant in New York".
-        type     -- Optional type param used to indicate place category.
+        inputtype-- The type of input. Can be 'textquery' or 'phonenumber'
+                    (default 'textquery')
+        language -- Language code
+        fields   -- Fields specifying the type of place data to return
+        locationbias -- Rectangular biasing (default values are for India)   
         types    -- An optional list of types, restricting the results to
                     Places (default []). If there is only one item the request
                     will be send as type param.
         """
         self._request_params = {'input': query}
-        self._request_params['inputtype'] = 'textquery'
-        self._request_params['fields'] = 'formatted_address,geometry,name,place_id,types'
-        if lat_lng is not None or location is not None:
-            lat_lng_str = self._generate_lat_lng_string(lat_lng, location)
-            self._request_params['location'] = lat_lng_str
-        #self._request_params['radius'] = radius
-        if type:
-            self._request_params['type'] = type
-        elif types:
+        self._request_params['inputtype'] = inputtype
+        self._request_params['fields'] = (",").join(fields)
+        if types:
             if len(types) == 1:
                 self._request_params['type'] = types[0]
             elif len(types) > 1:
                 self._request_params['types'] = '|'.join(types)
         if language is not None:
             self._request_params['language'] = language
-        if pagetoken is not None:
-            self._request_params['pagetoken'] = pagetoken
-        self._request_params['locationbias'] = 'rectangle:6.4627,68.1097|35.513327,97.3953587'
+        if locationbias is not None:
+            self._request_params['locationbias'] = locationbias
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.TEXT_SEARCH_API_URL, self._request_params)
-        print(url)
+                GooglePlaces.FIND_PLACES_API_URL, self._request_params)
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
