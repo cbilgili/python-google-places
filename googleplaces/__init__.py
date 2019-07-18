@@ -306,8 +306,7 @@ class GooglePlaces(object):
         return GooglePlacesSearchResult(self, places_response)
 
     def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
-                    radius=3200, type=None, types=[], location=None, pagetoken=None,
-                    loc_bias: bool = True):
+                    radius=None, type=None, types=[], location=None, pagetoken=None):
         """Perform a text search using the Google Places API.
 
         Only the one of the query or pagetoken kwargs are required, the rest of the 
@@ -331,7 +330,6 @@ class GooglePlaces(object):
         types    -- An optional list of types, restricting the results to
                     Places (default []). If there is only one item the request
                     will be send as type param.
-        loc_bias -- Location bias for India   
         """
         self._request_params = {'input': query}
         self._request_params['inputtype'] = 'textquery'
@@ -339,7 +337,7 @@ class GooglePlaces(object):
         if lat_lng is not None or location is not None:
             lat_lng_str = self._generate_lat_lng_string(lat_lng, location)
             self._request_params['location'] = lat_lng_str
-        self._request_params['radius'] = radius
+        #self._request_params['radius'] = radius
         if type:
             self._request_params['type'] = type
         elif types:
@@ -351,8 +349,7 @@ class GooglePlaces(object):
             self._request_params['language'] = language
         if pagetoken is not None:
             self._request_params['pagetoken'] = pagetoken
-        if loc_bias:
-            self._request_params['locationbias'] = "rectangle:6.4627,68.1097|35.5133,97.3953"
+        self._request_params['locationbias'] = 'rectangle:6.4627,68.1097|35.513327,97.3953587'
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
                 GooglePlaces.TEXT_SEARCH_API_URL, self._request_params)
@@ -784,7 +781,7 @@ class GooglePlacesSearchResult(object):
     def __init__(self, query_instance, response):
         self._response = response
         self._places = []
-        for place in response['results']:
+        for place in response['candidates']:
             self._places.append(Place(query_instance, place))
         self._html_attributions = response.get('html_attributions', [])
         self._next_page_token = response.get('next_page_token', [])
