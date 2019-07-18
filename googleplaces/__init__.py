@@ -346,8 +346,10 @@ class GooglePlaces(object):
     def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
                     radius=3200, type=None, types=[], location=None, pagetoken=None):
         """Perform a text search using the Google Places API.
+
         Only the one of the query or pagetoken kwargs are required, the rest of the 
         keyword arguments are optional.
+        
         keyword arguments:
         lat_lng  -- A dict containing the following keys: lat, lng
                     (default None)
@@ -842,7 +844,7 @@ class GooglePlacesSearchResultFindPlaces(object):
     def next_page_token(self):
         """Returns the next page token(next_page_token)."""
         return self._next_page_token
-        
+
     @property
     def has_attributions(self):
         """Returns a flag denoting if the response had any html attributions."""
