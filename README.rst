@@ -171,7 +171,7 @@ Reference
             types    -- An optional list of types, restricting the results to Places (default []).
                         This kwarg has been deprecated in favour of the 'type' kwarg.
 
-      find_places(**kwargs)
+      find_place(**kwargs)
         Returns googleplaces.GooglePlacesSearchResultFindPlace
         kwargs:
           inp         --  The text input specifying which place to search for
