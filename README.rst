@@ -171,7 +171,21 @@ Reference
             types    -- An optional list of types, restricting the results to Places (default []).
                         This kwarg has been deprecated in favour of the 'type' kwarg.
 
+      find_place(**kwargs)
+        Returns googleplaces.GooglePlacesSearchResultFindPlace
+        kwargs:
+          inp         --  The text input specifying which place to search for
 
+          inputtype   --  The type of input. Can be 'textquery' or 'phonenumber'
+                          (default 'textquery')
+          
+          language    --  The language code, indicating in which language the results 
+                          should be returned, if possible
+
+          fields      --  Fields specifying the type of place data to return
+
+          locationbias--  location biasing. For rectangular biasing, the format
+                            used should be 'rectangle:south,west|north,east'
 
       text_search(**kwargs)
         Returns googleplaces.GooglePlacesSearchResult
@@ -313,6 +327,20 @@ Reference
       predictions
         Returns an array of prediction objects.
 
+    googleplaces.GooglePlacesSearchResultFindPlace
+      raw_response
+        The raw JSON response returned by Google Places API for Find Place requests.
+      
+      places
+        A list of summary googleplaces.Place instances.
+
+      has_attributions()
+        Returns a flag indicating if the search result has html attributions that
+        must be displayed.
+
+      html_attributions()
+        Returns a List of String html attributions that must be displayed along with
+        the search results.
 
     googleplaces.GooglePlacesSearchResult
       raw_response
