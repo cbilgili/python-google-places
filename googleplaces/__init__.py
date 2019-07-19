@@ -35,7 +35,7 @@ from . import ranking
 
 __all__ = ['GooglePlaces', 'GooglePlacesError', 'GooglePlacesAttributeError',
            'geocode_location']
-__version__ = '99.1.0'
+__version__ = '99.1.1'
 __author__ = 'Samuel Adu'
 __email__ = 'sam@slimkrazy.com'
 
@@ -314,7 +314,8 @@ class GooglePlaces(object):
 
     def find_place(self, inp=None, inputtype='textquery', language=lang.ENGLISH, 
                    locationbias = None, 
-                   fields = ["formatted_address","geometry","name","place_id","types"]):
+                   fields = ["formatted_address","geometry","name","place_id","types"],
+                   timeout=None):
         """Perform a find places search using the Google Places API.
 
         https://developers.google.com/places/web-service/search#FindPlaceRequests
@@ -330,6 +331,7 @@ class GooglePlaces(object):
                         used should be 'rectangle:south,west|north,east' 
                         (Ex. for India, rectangular bias is 
                         'rectangle:6.4626999,68.1097|35.513327,97.3953586999')
+        timeout  -- Timeout in seconds
         """
         self._request_params = {'input': inp}
         self._request_params['inputtype'] = inputtype
@@ -340,7 +342,8 @@ class GooglePlaces(object):
             self._request_params['locationbias'] = locationbias
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.FIND_PLACE_API_URL, self._request_params)
+                GooglePlaces.FIND_PLACE_API_URL, self._request_params,
+                timeout=timeout)
         _validate_response(url, places_response)
         return GooglePlacesSearchResultFindPlace(self, places_response)
 
