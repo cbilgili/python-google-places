@@ -209,7 +209,7 @@ class GooglePlaces(object):
     GEOCODE_API_URL = BASE_URL + '/geocode/json?'
     RADAR_SEARCH_API_URL = PLACE_URL + '/radarsearch/json?'
     NEARBY_SEARCH_API_URL = PLACE_URL + '/nearbysearch/json?'
-    FIND_PLACES_API_URL = PLACE_URL + '/findplacefromtext/json?'
+    FIND_PLACE_API_URL = PLACE_URL + '/findplacefromtext/json?'
     TEXT_SEARCH_API_URL = PLACE_URL + '/textsearch/json?'
     AUTOCOMPLETE_API_URL = PLACE_URL + '/autocomplete/json?'
     DETAIL_API_URL = PLACE_URL + '/details/json?'
@@ -312,45 +312,37 @@ class GooglePlaces(object):
         _validate_response(url, places_response)
         return GooglePlacesSearchResult(self, places_response)
 
-    def find_places(self, query=None, inputtype='textquery', language=lang.ENGLISH, 
-                    types=[], locationbias = None, 
-                    fields = ["formatted_address","geometry","name","place_id","types"]):
+    def find_place(self, inp=None, inputtype='textquery', language=lang.ENGLISH, 
+                   locationbias = None, 
+                   fields = ["formatted_address","geometry","name","place_id","types"]):
         """Perform a find places search using the Google Places API.
 
         https://developers.google.com/places/web-service/search#FindPlaceRequests
 
         keyword arguments:
-        query    -- The text string on which to search, for example:
-                    "Restaurant in New York".
+        inp      -- The text input specifying which place to search for
         inputtype-- The type of input. Can be 'textquery' or 'phonenumber'
                     (default 'textquery')
-        language -- Language code
+        language -- The language code, indicating in which language the results 
+                    should be returned, if possible
         fields   -- Fields specifying the type of place data to return
         locationbias -- location biasing. For rectangular biasing, the format
                         used should be 'rectangle:south,west|north,east' 
                         (Ex. for India, rectangular bias is 
-                        'rectangle:6.4626999,68.1097|35.513327,97.3953586999')   
-        types    -- An optional list of types, restricting the results to
-                    Places (default []). If there is only one item the request
-                    will be send as type param.
+                        'rectangle:6.4626999,68.1097|35.513327,97.3953586999')
         """
-        self._request_params = {'input': query}
+        self._request_params = {'input': inp}
         self._request_params['inputtype'] = inputtype
         self._request_params['fields'] = (",").join(fields)
-        if types:
-            if len(types) == 1:
-                self._request_params['type'] = types[0]
-            elif len(types) > 1:
-                self._request_params['types'] = '|'.join(types)
         if language is not None:
             self._request_params['language'] = language
         if locationbias is not None:
             self._request_params['locationbias'] = locationbias
         self._add_required_param_keys()
         url, places_response = _fetch_remote_json(
-                GooglePlaces.FIND_PLACES_API_URL, self._request_params)
+                GooglePlaces.FIND_PLACE_API_URL, self._request_params)
         _validate_response(url, places_response)
-        return GooglePlacesSearchResultFindPlaces(self, places_response)
+        return GooglePlacesSearchResultFindPlace(self, places_response)
 
     def text_search(self, query=None, language=lang.ENGLISH, lat_lng=None,
                     radius=3200, type=None, types=[], location=None, pagetoken=None,
@@ -828,9 +820,9 @@ class Prediction(object):
         """ Return a string representation with description. """
         return '<{} description="{}">'.format(self.__class__.__name__, self.description)
 
-class GooglePlacesSearchResultFindPlaces(object):
+class GooglePlacesSearchResultFindPlace(object):
     """
-    Wrapper around the Google Places API query JSON response.
+    Wrapper around the Google Places API query JSON response for Find Place requests.
     """
 
     def __init__(self, query_instance, response):
