@@ -187,9 +187,6 @@ Reference
           locationbias--  location biasing. For rectangular biasing, the format
                             used should be 'rectangle:south,west|north,east'
 
-          types       --  An optional list of types, restricting the results to
-                          Places (default []).
-
       text_search(**kwargs)
         Returns googleplaces.GooglePlacesSearchResult
           kwargs:
