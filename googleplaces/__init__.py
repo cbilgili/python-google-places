@@ -1117,7 +1117,7 @@ class Place(object):
                                      self._query_instance.sensor,
                                      timeout=timeout)
 
-    def get_details(self, language=None, timeout=None):
+    def get_details(self, language=None, timeout=None, fields=["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"]):
         """Retrieves full information on the place matching the place_id.
 
         Further attributes will be made available on the instance once this
@@ -1138,7 +1138,7 @@ class Place(object):
                     language = lang.ENGLISH
             self._details = _get_place_details(
                 self.place_id, self._query_instance.api_key,
-                self._query_instance.sensor, language=language,
+                self._query_instance.sensor, language=language, fields=fields,
                 timeout=timeout)
 
     @cached_property
