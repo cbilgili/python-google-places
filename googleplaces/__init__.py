@@ -125,7 +125,7 @@ def geocode_location(location, sensor=False, api_key=None, timeout=None):
     return geo_response['results'][0]['geometry']['location']
 
 def _get_place_details(place_id, api_key, sensor=False,
-                       language=lang.ENGLISH, timeout=None):
+                       language=lang.ENGLISH, timeout=None, fields=["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"]):
     """Gets a detailed place response.
 
     keyword arguments:
@@ -136,7 +136,7 @@ def _get_place_details(place_id, api_key, sensor=False,
                                               {'placeid': place_id,
                                                'sensor': str(sensor).lower(),
                                                'key': api_key,
-                                               'fields': 'address_component,adr_address,formatted_address,geometry,name,photo,place_id,plus_code,type,url,utc_offset,vicinity,types',
+                                               'fields': ','.join(fields),
                                                'language': language},
                                               timeout=timeout)
     _validate_response(url, detail_response)
@@ -532,7 +532,7 @@ class GooglePlaces(object):
         _validate_response(url, checkin_response)
 
     def get_place(self, place_id, sensor=False, language=lang.ENGLISH,
-                  timeout=None):
+                  timeout=None, fields=["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"]):
         """Gets a detailed place object.
 
         keyword arguments:
@@ -543,7 +543,7 @@ class GooglePlaces(object):
                     results should be returned, if possible. (default lang.ENGLISH)
         timeout  -- Timeout in seconds
         """
-        place_details = _get_place_details(place_id, self.api_key, sensor,
+        place_details = _get_place_details(place_id, self.api_key, sensor, fields=fields
                                            language=language, timeout=timeout)
         return Place(self, place_details)
 
@@ -793,7 +793,7 @@ class Prediction(object):
         self._validate_status()
         return self._place
 
-    def get_details(self, language=None, timeout=None):
+    def get_details(self, language=None, timeout=None, fields=["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"]):
         """
         Retrieves full information on the place matching the place_id.
 
@@ -807,7 +807,7 @@ class Prediction(object):
                     language = lang.ENGLISH
             place = _get_place_details(
                 self.place_id, self._query_instance.api_key,
-                self._query_instance.sensor, language=language,
+                self._query_instance.sensor, language=language,fields=fields
                 timeout=timeout)
             self._place = Place(self._query_instance, place)
 
