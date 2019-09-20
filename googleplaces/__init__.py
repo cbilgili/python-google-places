@@ -315,7 +315,7 @@ class GooglePlaces(object):
 
     def find_place(self, inp=None, inputtype='textquery', language=lang.ENGLISH, 
                    locationbias = None, 
-                   fields = ["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"],
+                   fields = ["formatted_address","geometry","name","place_id","types"],
                    timeout=None):
         """Perform a find places search using the Google Places API.
 
