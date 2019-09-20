@@ -543,7 +543,7 @@ class GooglePlaces(object):
                     results should be returned, if possible. (default lang.ENGLISH)
         timeout  -- Timeout in seconds
         """
-        place_details = _get_place_details(place_id, self.api_key, sensor, fields=fields
+        place_details = _get_place_details(place_id, self.api_key, sensor, fields=fields,
                                            language=language, timeout=timeout)
         return Place(self, place_details)
 
