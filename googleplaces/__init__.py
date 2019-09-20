@@ -807,7 +807,7 @@ class Prediction(object):
                     language = lang.ENGLISH
             place = _get_place_details(
                 self.place_id, self._query_instance.api_key,
-                self._query_instance.sensor, language=language,fields=fields
+                self._query_instance.sensor, language=language, fields=fields,
                 timeout=timeout)
             self._place = Place(self._query_instance, place)
 
