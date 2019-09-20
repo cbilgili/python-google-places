@@ -136,6 +136,7 @@ def _get_place_details(place_id, api_key, sensor=False,
                                               {'placeid': place_id,
                                                'sensor': str(sensor).lower(),
                                                'key': api_key,
+                                               'fields': 'address_component,adr_address,formatted_address,geometry,name,photo,place_id,plus_code,type,url,utc_offset,vicinity,types',
                                                'language': language},
                                               timeout=timeout)
     _validate_response(url, detail_response)
@@ -314,7 +315,7 @@ class GooglePlaces(object):
 
     def find_place(self, inp=None, inputtype='textquery', language=lang.ENGLISH, 
                    locationbias = None, 
-                   fields = ["formatted_address","geometry","name","place_id","types"],
+                   fields = ["address_component","adr_address","formatted_address","geometry","name","photo","place_id","plus_code","type","url","utc_offset","vicinity","types"],
                    timeout=None):
         """Perform a find places search using the Google Places API.
 
