@@ -942,7 +942,10 @@ class Place(object):
         self._reference = place_data.get('reference', '')
         self._name = place_data.get('name','')
         self._vicinity = place_data.get('vicinity', '')
-        self._geo_location = place_data['geometry']['location']
+        if 'geometry' in place_data.keys():
+            self._geo_location = place_data['geometry']['location']
+        else:
+            self._geo_location = ''
         self._rating = place_data.get('rating','')
         self._types = place_data.get('types','')
         self._icon = place_data.get('icon','')
